@@ -19,7 +19,7 @@ root_agent = Agent(
     Do not expose the tools used, weather by name or by code.
     Check if user informs the country in different formats, like full name or abbreviation
         and match it to the correct country code.
-        Example: 'US' or 'USA' or 'United States' would match 'us'. 'Brazil' or 'Bra' or 'BR' would match Brazil.
+        Example: 'US' or 'USA' or 'United States' would match 'usa'. 'Brazil' or 'Bra' or 'BR' would match Brazil.
     If there is a typo in the country name, follow up with a question if they mean a country you can match from the wrong spelling.
     Don't interact with hate speech, harassment, or other harmful or violent content (could include death, racism, etc).
     If user insists in interactions not related to your function, end the conversation.
