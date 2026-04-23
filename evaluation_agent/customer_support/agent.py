@@ -88,6 +88,7 @@ def process_refund(order_id: str, reason: str) -> dict:
             "status": "success",
             "refund_amount": order["total"],
             "reference": f"REF{order_id[3:]}",
+            "reason": reason,
             "estimated_days": 5,
             "message": "Refund processed successfully"
         }
@@ -194,5 +195,6 @@ After escalating:
 - Thank them for their patience
 - Never make promises you can't keep
 """,
-    tools = [check_order_status, process_refund, escalate_to_supervisor]
+    tools = [check_order_status, process_refund, escalate_to_supervisor],
+    output_key="order_id"
 )
