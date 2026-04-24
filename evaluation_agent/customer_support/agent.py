@@ -4,7 +4,9 @@ Demonstrates strategic tool combination, error handling, and agent-as-tool patte
 
 Reference: https://google.github.io/adk-docs/tools-custom/
 """
+import os
 
+from dotenv import load_dotenv
 from google.adk.agents import LlmAgent
 
 # Simulated database
@@ -128,12 +130,18 @@ def escalate_to_supervisor(issue_summary: str, order_id: str) -> dict:
     }
 
 
+load_dotenv()
+
+project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+location = os.environ.get("GOOGLE_CLOUD_LOCATION")
+template_id = os.environ.get("GOOGLE_CLOUD_TEMPLATE_ID")
+
 # Create customer support agent with strategic instructions
 root_agent = LlmAgent(
     model='gemini-2.5-flash',
     name='customer_support_agent',
     description='Handles customer inquiries about orders and refunds with comprehensive error handling.',
-    instruction = """You are a helpful and empathetic customer support agent for an e-commerce company.
+    instruction="""You are a helpful and empathetic customer support agent for an e-commerce company.
 
 # Your Capabilities
 You have three tools available:
@@ -177,6 +185,7 @@ For 'cannot_refund' errors:
 
 ## When to Escalate:
 Use escalate_to_supervisor when:
+    - Customer already checked an order
     - Customer is frustrated or angry and requests supervisor
     - Issue cannot be resolved with available tools
     - Customer requests policy exception
@@ -195,6 +204,6 @@ After escalating:
 - Thank them for their patience
 - Never make promises you can't keep
 """,
-    tools = [check_order_status, process_refund, escalate_to_supervisor],
+    tools=[check_order_status, process_refund, escalate_to_supervisor],
     output_key="order_id"
 )
