@@ -1,5 +1,8 @@
+from typing import MutableMapping
+
 from google.api_core.client_options import ClientOptions
 from google.cloud import modelarmor_v1
+from google.cloud.modelarmor_v1 import FilterMatchState, SdpFilterResult, FilterResult
 
 
 class ModelArmorService:
@@ -10,35 +13,82 @@ class ModelArmorService:
         self.template = f"projects/{project_id}/locations/{location}/templates/{template_id}"
         self.client = modelarmor_v1.ModelArmorClient(
             transport="rest",
-            client_options=ClientOptions(api_endpoint=self.template),
+            client_options=ClientOptions(api_endpoint=f"modelarmor.{location}.rep.googleapis.com"),
         )
 
-    def sanitize_input(self, text: str) -> str:
+    def sanitize_input(self, text: str):
         """Sanitizes the user input text using Model Armor."""
-        user_prompt_data = modelarmor_v1.DataItem(text=text)
-        request = modelarmor_v1.SanitizeUserPromptRequest(
-            name=self.template,
-            user_input=user_prompt_data,
-        )
+        input_text = {"text": text}
+        user_prompt_data = modelarmor_v1.DataItem(input_text)
+
+        request_item = {"name": self.template, "user_prompt_data": user_prompt_data}
+        request = modelarmor_v1.SanitizeUserPromptRequest(request_item)
 
         response = self.client.sanitize_user_prompt(request=request)
+        print(f"Prompt Sanitizing - Model Armor response: {response}")
 
-        if response.blocked:
-            raise ValueError(f"Input blocked: {response.reason}")
+        if response.sanitization_result:
+            if response.sanitization_result.filter_match_state == FilterMatchState.MATCH_FOUND:
+                raise ValueError(f"Input blocked by Model Armor.")
 
-        return response.sanitized_text or text
-
-    def sanitize_output(self, text: str) -> str:
+    def sanitize_output(self, text: str):
         """Sanitizes the model response text using Model Armor."""
-        model_response_data = modelarmor_v1.DataItem(text=text)
-        request = modelarmor_v1.SanitizeModelResponseRequest(
-            name=self.template,
-            model_response_data=model_response_data,
-        )
+        data_item = {"text": text}
+        model_response_data = modelarmor_v1.DataItem(data_item)
+
+        request_item = {"name": self.template, "model_response_data": model_response_data}
+        request = modelarmor_v1.SanitizeModelResponseRequest(request_item)
 
         response = self.client.sanitize_model_response(request=request)
+        print(f"Model response sanitizing - Model Armor response: {response}")
 
-        if response.blocked:
-            raise ValueError(f"Output blocked: {response.reason}")
+        if response.sanitization_result:
+            if response.sanitization_result.filter_match_state == FilterMatchState.MATCH_FOUND:
+                errors, redacted_text = process_filter_results(response.sanitization_result.filter_results)
+                if errors:
+                    raise ValueError(f"Model response blocked by Model Armor. Errors: {errors}")
 
-        return response.sanitized_text or text
+
+def process_filter_results(filter_result: MutableMapping[str, FilterResult]):
+    filter_errors = []
+    redacted_text = ""
+
+    for _, filter_item in filter_result.items():
+        if filter_item.csam_filter_filter_result:
+            filter_errors.append(filter_item.csam_filter_filter_result.message_items)
+
+        if filter_item.rai_filter_result:
+            filter_errors.append(filter_item.rai_filter_result.message_items)
+
+        if filter_item.malicious_uri_filter_result:
+            filter_errors.append(filter_item.malicious_uri_filter_result.message_items)
+
+        if filter_item.pi_and_jailbreak_filter_result:
+            filter_errors.append(filter_item.pi_and_jailbreak_filter_result.message_items)
+
+        if filter_item.virus_scan_filter_result:
+            filter_errors.append(filter_item.virus_scan_filter_result.message_items)
+
+        if filter_item.sdp_filter_result:
+            sdp_result = process_sdp_filter_results(filter_item.sdp_filter_result)
+            if sdp_result and sdp_result["error_messages"]:
+                filter_errors.append(sdp_result["error_messages"])
+
+            if sdp_result and sdp_result["deidentify_result"]:
+                redacted_text = sdp_result["deidentify_result"]
+
+    return filter_errors, redacted_text
+
+
+def process_sdp_filter_results(sdp_result: SdpFilterResult):
+    sdp_dict = {}
+
+    if sdp_result:
+        if sdp_result.inspect_result.match_state == SdpFilterResult.MatchState.MATCH_FOUND:
+            sdp_dict["error_messages"] = sdp_result.inspect_result.message_items
+
+        if (sdp_result.deidentify_result
+                and sdp_result.deidentify_result.execution_state == SdpFilterResult.ExecutionState.SUCCESS):
+            sdp_dict["deidentify_result"] = sdp_result.deidentify_result.data
+
+    return sdp_dict

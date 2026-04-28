@@ -4,10 +4,9 @@ Demonstrates strategic tool combination, error handling, and agent-as-tool patte
 
 Reference: https://google.github.io/adk-docs/tools-custom/
 """
-import os
-
 from dotenv import load_dotenv
 from google.adk.agents import LlmAgent
+from .service import before_model_callback_handler, after_model_callback_handler
 
 # Simulated database
 ORDERS_DB = {
@@ -132,10 +131,6 @@ def escalate_to_supervisor(issue_summary: str, order_id: str) -> dict:
 
 load_dotenv()
 
-project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
-location = os.environ.get("GOOGLE_CLOUD_LOCATION")
-template_id = os.environ.get("GOOGLE_CLOUD_TEMPLATE_ID")
-
 # Create customer support agent with strategic instructions
 root_agent = LlmAgent(
     model='gemini-2.5-flash',
@@ -205,5 +200,7 @@ After escalating:
 - Never make promises you can't keep
 """,
     tools=[check_order_status, process_refund, escalate_to_supervisor],
-    output_key="order_id"
+    output_key="order_id",
+    before_model_callback=before_model_callback_handler,
+    after_model_callback=after_model_callback_handler
 )
