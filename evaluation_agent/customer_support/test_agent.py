@@ -4,6 +4,11 @@ from google.adk.evaluation.agent_evaluator import AgentEvaluator
 
 @pytest.mark.asyncio
 async def test_customer_support_agent():
+    """Tests the customer support agent using an evaluation set.
+
+    This test loads the evaluation dataset and runs the agent against it using
+    the AgentEvaluator.
+    """
     # Path to the evaluation set
     file_name="generated.evalset.json"
     eval_set_path = os.path.abspath(__file__).__str__()

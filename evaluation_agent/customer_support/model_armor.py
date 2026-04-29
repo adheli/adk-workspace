@@ -45,11 +45,23 @@ class ModelArmorService:
         if response.sanitization_result:
             if response.sanitization_result.filter_match_state == FilterMatchState.MATCH_FOUND:
                 errors, redacted_text = process_filter_results(response.sanitization_result.filter_results)
-                if errors:
+                print(f"Model response filtered - Redacted text: {redacted_text}")
+                if redacted_text:
+                    return redacted_text
+                elif errors:
                     raise ValueError(f"Model response blocked by Model Armor. Errors: {errors}")
 
+        return None
 
 def process_filter_results(filter_result: MutableMapping[str, FilterResult]):
+    """Processes filter results from Model Armor.
+
+    Args:
+        filter_result: A mapping of filter names to their results.
+
+    Returns:
+        tuple: A list of filter errors and the redacted text.
+    """
     filter_errors = []
     redacted_text = ""
 
@@ -71,16 +83,22 @@ def process_filter_results(filter_result: MutableMapping[str, FilterResult]):
 
         if filter_item.sdp_filter_result:
             sdp_result = process_sdp_filter_results(filter_item.sdp_filter_result)
-            if sdp_result and sdp_result["error_messages"]:
-                filter_errors.append(sdp_result["error_messages"])
-
-            if sdp_result and sdp_result["deidentify_result"]:
-                redacted_text = sdp_result["deidentify_result"]
+            if sdp_result:
+                filter_errors.append(sdp_result.get("error_messages",""))
+                redacted_text = sdp_result.get("deidentify_result", "")
 
     return filter_errors, redacted_text
 
 
 def process_sdp_filter_results(sdp_result: SdpFilterResult):
+    """Processes sensitive data protection (SDP) filter results.
+
+    Args:
+        sdp_result: The SDP filter result from Model Armor.
+
+    Returns:
+        dict: A dictionary containing error messages and de-identified result.
+    """
     sdp_dict = {}
 
     if sdp_result:
