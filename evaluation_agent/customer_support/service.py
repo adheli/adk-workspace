@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+import google.auth
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest, LlmResponse
 from google.genai import types
@@ -10,7 +11,8 @@ PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION")
 TEMPLATE_ID = os.environ.get("GOOGLE_CLOUD_TEMPLATE_ID")
 
-armor = ModelArmorService(PROJECT_ID, LOCATION, TEMPLATE_ID)
+credentials, project_id = google.auth.default()
+armor = ModelArmorService(project_id, LOCATION, TEMPLATE_ID)
 
 
 def before_model_callback_handler(callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:

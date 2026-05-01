@@ -11,7 +11,7 @@ async def test_customer_support_agent():
     """
     # Path to the evaluation set
     file_name="generated.evalset.json"
-    eval_set_path = os.path.abspath(__file__).__str__()
+    # eval_set_path = os.path.abspath(__file__).replace("/test_agent.py", "")
     
     # Run evaluation
     # agent_module should be the import path to the agent file
@@ -21,6 +21,6 @@ async def test_customer_support_agent():
     
     await AgentEvaluator.evaluate(
         agent_module="customer_support.agent",
-        eval_dataset_file_path_or_dir=os.path.join(eval_set_path, file_name),
+        eval_dataset_file_path_or_dir=file_name,
         num_runs=1
     )

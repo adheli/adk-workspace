@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adk-workspace"
+version = "0.1.0"
+description = "A workspace for AI agents using Google ADK"
+authors = [
+    { name = "Eli Tavares" }
+]
+readme = "evaluation_agent/customer_support/README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk==1.31.0",
+    "google-genai==1.73.1",
+    "google-cloud-modelarmor==0.5.0",
+    "google-cloud-aiplatform==1.148.1",
+    "pytest==9.0.3",
+    "fastapi==0.136.0",
+    "uvicorn==0.44.0",
+    "pydantic>=2.9.0",
+    "python-dotenv==1.0.1",
+    "PyYAML==6.0.3",
+]
+
+[tool.setuptools]
+packages = ["custom_tool_agent", "evaluation_agent", "my_config_agent", "my_first_agent", "problem_solver", "product_extractor"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+python_files = ["test_*.py"]

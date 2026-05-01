@@ -2,7 +2,7 @@ from typing import MutableMapping
 
 from google.api_core.client_options import ClientOptions
 from google.cloud import modelarmor_v1
-from google.cloud.modelarmor_v1 import FilterMatchState, SdpFilterResult, FilterResult
+from google.cloud.modelarmor_v1 import FilterMatchState, SdpFilterResult, FilterResult, FilterExecutionState
 
 
 class ModelArmorService:
@@ -40,7 +40,6 @@ class ModelArmorService:
         request = modelarmor_v1.SanitizeModelResponseRequest(request_item)
 
         response = self.client.sanitize_model_response(request=request)
-        print(f"Model response sanitizing - Model Armor response: {response}")
 
         if response.sanitization_result:
             if response.sanitization_result.filter_match_state == FilterMatchState.MATCH_FOUND:
@@ -52,6 +51,7 @@ class ModelArmorService:
                     raise ValueError(f"Model response blocked by Model Armor. Errors: {errors}")
 
         return None
+
 
 def process_filter_results(filter_result: MutableMapping[str, FilterResult]):
     """Processes filter results from Model Armor.
@@ -66,25 +66,26 @@ def process_filter_results(filter_result: MutableMapping[str, FilterResult]):
     redacted_text = ""
 
     for _, filter_item in filter_result.items():
-        if filter_item.csam_filter_filter_result:
-            filter_errors.append(filter_item.csam_filter_filter_result.message_items)
+        if (filter_item.csam_filter_filter_result and
+                filter_item.csam_filter_filter_result.match_state == FilterMatchState.MATCH_FOUND):
+            filter_errors.append("Message blocked by CSAM filter.")
 
-        if filter_item.rai_filter_result:
-            filter_errors.append(filter_item.rai_filter_result.message_items)
+        if filter_item.rai_filter_result and filter_item.rai_filter_result.match_state == FilterMatchState.MATCH_FOUND:
+            filter_errors.append("Message blocked by RAI filter.")
 
-        if filter_item.malicious_uri_filter_result:
-            filter_errors.append(filter_item.malicious_uri_filter_result.message_items)
+        if filter_item.malicious_uri_filter_result and filter_item.malicious_uri_filter_result.match_state == FilterMatchState.MATCH_FOUND:
+            filter_errors.append("Message blocked as it contains malicious URLs.")
 
-        if filter_item.pi_and_jailbreak_filter_result:
-            filter_errors.append(filter_item.pi_and_jailbreak_filter_result.message_items)
+        if filter_item.pi_and_jailbreak_filter_result and filter_item.pi_and_jailbreak_filter_result.match_state == FilterMatchState.MATCH_FOUND:
+            filter_errors.append("Message blocked for potential phishing attacks.")
 
-        if filter_item.virus_scan_filter_result:
-            filter_errors.append(filter_item.virus_scan_filter_result.message_items)
+        if filter_item.virus_scan_filter_result and filter_item.virus_scan_filter_result.match_state == FilterMatchState.MATCH_FOUND:
+            filter_errors.append("Message might be infected with a virus.")
 
         if filter_item.sdp_filter_result:
             sdp_result = process_sdp_filter_results(filter_item.sdp_filter_result)
             if sdp_result:
-                filter_errors.append(sdp_result.get("error_messages",""))
+                filter_errors.append(sdp_result.get("error_messages", ""))
                 redacted_text = sdp_result.get("deidentify_result", "")
 
     return filter_errors, redacted_text
@@ -102,11 +103,11 @@ def process_sdp_filter_results(sdp_result: SdpFilterResult):
     sdp_dict = {}
 
     if sdp_result:
-        if sdp_result.inspect_result.match_state == SdpFilterResult.MatchState.MATCH_FOUND:
+        if sdp_result.inspect_result.match_state == FilterMatchState.MATCH_FOUND:
             sdp_dict["error_messages"] = sdp_result.inspect_result.message_items
 
         if (sdp_result.deidentify_result
-                and sdp_result.deidentify_result.execution_state == SdpFilterResult.ExecutionState.SUCCESS):
+                and sdp_result.deidentify_result.execution_state == FilterExecutionState.EXECUTION_SUCCESS):
             sdp_dict["deidentify_result"] = sdp_result.deidentify_result.data
 
     return sdp_dict

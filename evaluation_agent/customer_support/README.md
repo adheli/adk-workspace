@@ -45,7 +45,43 @@ Start the agent with the following command:
 2. Send a harmful request.
 3. Ask agent means to harm someone.
 
-## References
+#### References
 - [Why Evaluate Agents](https://adk.dev/evaluate/)
 - [Build intelligent agents with ADK](https://www.skills.google/course_templates/1382)
 - [Evaluating Agents with ADK - Codelabs](https://codelabs.developers.google.com/adk-eval/instructions)
+
+### Model Armor Implementation
+
+Safety checks have been implemented using Google Cloud Model Armor to protect both user inputs and model outputs.
+
+#### Core Components
+- **`model_armor.py`**: Contains the `ModelArmorService` class which wraps the `ModelArmorClient`. It handles 
+communication with the Model Armor API using a specified security template.
+- **`service.py`**: Implements the callback handlers (`before_model_callback_handler` and 
+`after_model_callback_handler`) that integrate Model Armor into the agent's workflow.
+
+#### Features
+- **Input Sanitization**: Analyzes user prompts before they reach the LLM. If harmful content (e.g., jailbreak 
+attempts, malicious URIs) is detected based on the security template, the request is blocked, and a predefined error 
+message is returned.
+- **Output Sanitization**: Filters LLM responses before they are delivered to the user.
+    - **Blocking**: If the response violates safety filters (RAI, CSAM, etc.), it is blocked entirely.
+    - **Redaction**: For sensitive data (SDP), the service attempts to redact/de-identified the information (e.g., 
+  masking PII) while allowing the rest of the message to pass through.
+
+#### Configuration
+The Model Armor service requires the following environment variables:
+- `GOOGLE_CLOUD_PROJECT`: Your Google Cloud Project ID.
+- `GOOGLE_CLOUD_LOCATION`: The region where Model Armor is configured (e.g., `us-central1`).
+- `GOOGLE_CLOUD_TEMPLATE_ID`: The ID of the Model Armor security template to use.
+
+#### Integration
+The agent is configured in `agent.py` to use these callbacks:
+```python
+root_agent = LlmAgent(
+    ...
+    before_model_callback=before_model_callback_handler,
+    after_model_callback=after_model_callback_handler
+)
+```
+
