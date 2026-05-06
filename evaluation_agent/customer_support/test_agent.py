@@ -1,6 +1,9 @@
 import pytest
-import os
+from dotenv import load_dotenv
 from google.adk.evaluation.agent_evaluator import AgentEvaluator
+
+load_dotenv()
+
 
 @pytest.mark.asyncio
 async def test_customer_support_agent():

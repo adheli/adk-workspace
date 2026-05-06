@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest, LlmResponse
 from google.genai import types
-from .service import before_model_callback_handler, after_model_callback_handler
+from customer_support.service import before_model_callback_handler, after_model_callback_handler
 
 @pytest.fixture
 def mock_callback_context():
@@ -23,7 +23,7 @@ def mock_llm_response():
     response.content = types.Content(role="model", parts=[types.Part(text="Hi there")])
     return response
 
-@patch("service.armor")
+@patch("customer_support.service.armor")
 def test_before_model_callback_handler_success(mock_armor, mock_callback_context, mock_llm_request):
     mock_armor.sanitize_input.return_value = None
     
@@ -32,7 +32,7 @@ def test_before_model_callback_handler_success(mock_armor, mock_callback_context
     assert result is None
     mock_armor.sanitize_input.assert_called_once_with("Hello")
 
-@patch("service.armor")
+@patch("customer_support.service.armor")
 def test_before_model_callback_handler_blocked(mock_armor, mock_callback_context, mock_llm_request):
     mock_armor.sanitize_input.side_effect = ValueError("Blocked")
     
@@ -41,7 +41,7 @@ def test_before_model_callback_handler_blocked(mock_armor, mock_callback_context
     assert isinstance(result, LlmResponse)
     assert "Your request cannot be processed.Blocked" in result.content.parts[0].text
 
-@patch("service.armor")
+@patch("customer_support.service.armor")
 def test_after_model_callback_handler_success(mock_armor, mock_callback_context, mock_llm_response):
     mock_armor.sanitize_output.return_value = None
     
@@ -50,7 +50,7 @@ def test_after_model_callback_handler_success(mock_armor, mock_callback_context,
     assert result is None
     mock_armor.sanitize_output.assert_called_once_with("Hi there")
 
-@patch("service.armor")
+@patch("customer_support.service.armor")
 def test_after_model_callback_handler_redacted(mock_armor, mock_callback_context, mock_llm_response):
     mock_armor.sanitize_output.return_value = "Redacted hi"
     
@@ -59,7 +59,7 @@ def test_after_model_callback_handler_redacted(mock_armor, mock_callback_context
     assert isinstance(result, LlmResponse)
     assert result.content.parts[0].text == "Redacted hi"
 
-@patch("service.armor")
+@patch("customer_support.service.armor")
 def test_after_model_callback_handler_blocked(mock_armor, mock_callback_context, mock_llm_response):
     mock_armor.sanitize_output.side_effect = ValueError("Blocked")
     

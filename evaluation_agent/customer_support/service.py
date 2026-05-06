@@ -2,10 +2,13 @@ import os
 from typing import Optional
 
 import google.auth
+from dotenv import load_dotenv
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest, LlmResponse
 from google.genai import types
 from .model_armor import ModelArmorService
+
+load_dotenv()
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION")
