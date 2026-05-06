@@ -34,7 +34,6 @@ def before_model_callback_handler(callback_context: CallbackContext, llm_request
 
     if llm_request.contents and llm_request.contents[-1].role == "user":
         print("User message detected")
-        print(llm_request.contents)
 
         if llm_request.contents[-1].parts:
             parts = llm_request.contents[-1].parts
